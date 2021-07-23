@@ -3,11 +3,8 @@ module Main exposing (main)
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation exposing (Key)
 import Html exposing (text)
+import Page.ListView as ListView
 import Url exposing (Url)
-
-
-type alias Flags =
-    ()
 
 
 main : Program Flags Model Msg
@@ -23,8 +20,12 @@ main =
 
 
 type alias Model =
-    { page : String
+    { page : Page
     }
+
+
+type Page
+    = ListView ListView.Model
 
 
 type Msg
@@ -33,24 +34,26 @@ type Msg
     | OnUrlChange Url
 
 
+type alias Flags =
+    ()
+
+
 init : Flags -> Url -> Key -> ( Model, Cmd Msg )
 init flags url key =
-    ( { page = "home" }
+    ( { page = ListView ListView.initialModel }
     , Cmd.none
     )
 
 
 view : Model -> Document Msg
 view model =
-    { title = model.page
-    , body =
-        [ Html.div
-            []
-            [ text "page : "
-            , text model.page
-            ]
-        ]
-    }
+    case model.page of
+        ListView listViewModel ->
+            { title = listViewModel.title
+            , body =
+                List.map (Html.map (always Noop)) <|
+                    ListView.view listViewModel
+            }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
