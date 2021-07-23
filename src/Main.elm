@@ -1,11 +1,14 @@
 module Main exposing (main)
 
-import Browser exposing (Document, UrlRequest)
-import Browser.Navigation exposing (Key)
+import Browser exposing (Document, UrlRequest(..))
+import Browser.Navigation as Nav exposing (Key)
 import Html exposing (text)
+import Item exposing (Item)
 import Page.ItemPage as ItemPage
 import Page.ListPage as ListPage
 import Url exposing (Url)
+import Url.Parser as Url exposing ((</>), (<?>), Parser, s)
+import Url.Parser.Query as Query
 
 
 main : Program Flags Model Msg
@@ -21,13 +24,15 @@ main =
 
 
 type alias Model =
-    { page : Page
+    { key : Key
+    , page : Page
     }
 
 
 type Page
     = ListPage ListPage.Model
     | ItemPage ItemPage.Model
+    | NotFound
 
 
 type Msg
@@ -42,9 +47,16 @@ type alias Flags =
 
 init : Flags -> Url -> Key -> ( Model, Cmd Msg )
 init flags url key =
-    ( { page = ListPage ListPage.initialModel }
+    ( { key = key
+      , page = parsePage url
+      }
     , Cmd.none
     )
+
+
+parsePage : Url -> Page
+parsePage url =
+    Maybe.withDefault NotFound <| Url.parse parseUrl url
 
 
 view : Model -> Document Msg
@@ -57,6 +69,11 @@ view model =
             }
     in
     case model.page of
+        NotFound ->
+            { title = "Page Not Found"
+            , body = []
+            }
+
         ListPage listPageModel ->
             map (always Noop) <|
                 ListPage.view listPageModel
@@ -77,16 +94,52 @@ update msg model =
                 _ =
                     Debug.log "OnUrlRequest" urlRequest
             in
-            ( model, Cmd.none )
+            case urlRequest of
+                Internal url ->
+                    ( { model | page = parsePage url }
+                    , Nav.pushUrl model.key (Url.toString url)
+                    )
+
+                External url ->
+                    ( model
+                    , Nav.load url
+                    )
 
         OnUrlChange url ->
             let
                 _ =
                     Debug.log "OnUrlChange" url
             in
-            ( model, Cmd.none )
+            ( { model | page = parsePage url }
+            , Cmd.none
+            )
 
 
 subscriptions : model -> Sub Msg
 subscriptions model =
     Sub.none
+
+
+parseUrl : Parser (Page -> a) a
+parseUrl =
+    Url.oneOf
+        [ Url.map makeListPage (Url.top <?> Query.string "selected")
+        , Url.map makeItemPage (s "item" </> Url.int)
+        ]
+
+
+makeListPage : Maybe String -> Page
+makeListPage selectedItem =
+    ListPage
+        { title = "listView"
+        , items = List.map (\n -> { number = n }) <| List.range 1 100
+        , selectedItemNumber = Maybe.andThen String.toInt selectedItem
+        }
+
+
+makeItemPage : Int -> Page
+makeItemPage itemNumber =
+    ItemPage
+        { title = "Item Page -- " ++ String.fromInt itemNumber
+        , item = Item itemNumber
+        }

@@ -1,7 +1,7 @@
 module Page.ItemPage exposing (Model, view)
 
 import Browser exposing (Document)
-import Html exposing (Html)
+import Html exposing (Html, div, text)
 import Item exposing (Item)
 
 
@@ -13,4 +13,11 @@ type alias Model =
 
 view : Model -> Document Never
 view model =
-    Debug.todo ""
+    { title = model.title
+    , body =
+        [ div
+            []
+            [ text <| "this is item " ++ String.fromInt model.item.number
+            ]
+        ]
+    }
