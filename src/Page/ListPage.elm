@@ -1,11 +1,12 @@
-module Page.ListView exposing
+module Page.ListPage exposing
     ( Model
     , initialModel
     , view
     )
 
-import Html exposing (Html, div, text)
-import Html.Attributes exposing (classList)
+import Browser exposing (Document)
+import Html exposing (Html, a, div, text)
+import Html.Attributes exposing (classList, href)
 import Item exposing (Item)
 
 
@@ -24,9 +25,11 @@ initialModel =
     }
 
 
-view : Model -> List (Html Never)
+view : Model -> Document Never
 view model =
-    List.map (itemView model.selectedItemNumber) model.items
+    { title = model.title
+    , body = List.map (itemView model.selectedItemNumber) model.items
+    }
 
 
 itemView : Maybe Int -> Item -> Html Never
@@ -34,10 +37,17 @@ itemView selectedNumber item =
     let
         isSelected =
             Maybe.withDefault False <| Maybe.map ((==) item.number) selectedNumber
+
+        itemNumber =
+            String.fromInt item.number
     in
     div
         [ classList [ ( "selected", isSelected ) ]
         ]
-        [ text "This is item number: "
-        , text <| String.fromInt item.number
+        [ a
+            [ href <| "/item/" ++ itemNumber
+            ]
+            [ text "This is item number: "
+            , text <| String.fromInt item.number
+            ]
         ]

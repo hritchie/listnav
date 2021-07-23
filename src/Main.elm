@@ -3,7 +3,8 @@ module Main exposing (main)
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation exposing (Key)
 import Html exposing (text)
-import Page.ListView as ListView
+import Page.ItemPage as ItemPage
+import Page.ListPage as ListPage
 import Url exposing (Url)
 
 
@@ -25,7 +26,8 @@ type alias Model =
 
 
 type Page
-    = ListView ListView.Model
+    = ListPage ListPage.Model
+    | ItemPage ItemPage.Model
 
 
 type Msg
@@ -40,20 +42,28 @@ type alias Flags =
 
 init : Flags -> Url -> Key -> ( Model, Cmd Msg )
 init flags url key =
-    ( { page = ListView ListView.initialModel }
+    ( { page = ListPage ListPage.initialModel }
     , Cmd.none
     )
 
 
 view : Model -> Document Msg
 view model =
-    case model.page of
-        ListView listViewModel ->
-            { title = listViewModel.title
-            , body =
-                List.map (Html.map (always Noop)) <|
-                    ListView.view listViewModel
+    let
+        map : (a -> Msg) -> Document a -> Document Msg
+        map msg document =
+            { title = document.title
+            , body = List.map (Html.map msg) document.body
             }
+    in
+    case model.page of
+        ListPage listPageModel ->
+            map (always Noop) <|
+                ListPage.view listPageModel
+
+        ItemPage itemPageModel ->
+            map (always Noop) <|
+                ItemPage.view itemPageModel
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
